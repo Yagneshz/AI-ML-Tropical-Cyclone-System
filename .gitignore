@@ -1,0 +1,5 @@
+
+data/raw/
+*.h5
+*.hdf5
+*.npy

@@ -1,0 +1,3 @@
+# Additional dependencies for Step 13: local prediction engine
+fastapi
+uvicorn
