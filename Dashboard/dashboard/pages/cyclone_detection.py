@@ -55,7 +55,7 @@ st.subheader("🛰️ Satellite Observation")
 
 display_satellite_panel(
     satellite_name="INSAT-3D",
-    timestamp="2026-09-06 12:00 UTC",
+    # timestamp="2026-09-06 12:00 UTC",
     channel="Infrared",
 )
 

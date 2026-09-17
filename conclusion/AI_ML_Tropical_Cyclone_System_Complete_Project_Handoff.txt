@@ -1,0 +1,564 @@
+AI/ML TROPICAL CYCLONE SYSTEM
+COMPLETE TECHNICAL PROJECT HANDOFF
+=====================================================================
+
+PROJECT ROOT: D:\SIH
+ML PROJECT:   D:\SIH\tropical-cyclone-ai
+DASHBOARD:    D:\SIH\Dashboard
+DOCUMENTS:    D:\SIH\conclusion
+
+SAFETY AND SCIENTIFIC DISCLAIMER
+---------------------------------------------------------------------
+This project is a research and educational prototype. Predictions,
+confidence scores, alerts, and track/intensity forecasts must not be
+interpreted as official meteorological warnings or forecasts.
+Operational tropical cyclone warnings should be obtained from
+authorized meteorological agencies.
+
+1. PURPOSE AND CURRENT STATE
+=====================================================================
+The system is a local end-to-end research workflow for:
+  - satellite-image cyclone/non-cyclone detection;
+  - CNN feature extraction and cyclone category classification;
+  - sequential storm-state, wind, pressure, and track forecasting;
+  - evaluation, local prediction serving, and dashboard visualization.
+
+IMPLEMENTED:
+  Steps 1-5: data collection through TCIR-IBTrACS fusion.
+  Step 6: PyTorch CNN detector, manifest builder, train and inference.
+  Step 7: CNN feature extraction.
+  Step 8: scikit-learn MLP category classification.
+  Steps 9-11: storm-aware LSTM temporal, intensity, and track models.
+  Step 12: classification, regression, and Haversine evaluation.
+  Step 13: local FastAPI prediction engine and threshold alerts.
+  Step 14: Streamlit dashboard Pipeline Control Center.
+
+AVAILABLE:
+  data/processed/fused_dataset/tcir_ibtracs_fused.csv
+  This fused dataset contains 21,076 records/rows.
+
+REQUIRED:
+  Labelled satellite image crops, trained model checkpoints, and
+  generated artifacts are required for an end-to-end live prediction.
+
+NOT CURRENTLY AVAILABLE:
+  - Satellite image dataset.
+  - Trained CNN checkpoint.
+  - Trained MLP classifier checkpoint.
+  - Trained temporal, intensity, or track checkpoints.
+  - Production/cloud deployment.
+
+The dashboard intentionally reports missing artifacts as unavailable.
+No model accuracy or operational readiness is claimed.
+
+2. DATA SOURCES AND DATA STATUS
+=====================================================================
+2.1 TCIR SATELLITE METADATA
+Purpose:
+  - satellite observation time and location;
+  - wind and pressure metadata;
+  - association point for satellite imagery when images are supplied.
+
+Cleaned artifact:
+  data/interim/cleaned_satellite/tcir_metadata_cleaned.csv
+
+The fused output contains TCIR-side fields including REGION, CYCLONE_ID,
+LON_TCIR, LAT_TCIR, TIME, WIND_KTS, SIZE, and PRESSURE_MB. Complete
+raw-source coverage is not specified in supplied project information.
+
+2.2 IBTrACS
+Purpose:
+  - historical tropical cyclone track records;
+  - storm identity;
+  - reference latitude, longitude, wind, central pressure, and time;
+  - ground-truth/reference values for temporal prediction tasks.
+
+Important fused fields include SID, LAT_IBTRACS, LON_IBTRACS, USA_WIND,
+USA_PRES, USA_ATCF_ID, and ISO_TIME.
+
+2.3 FUSED TCIR-IBTRACS DATASET
+Path:
+  data/processed/fused_dataset/tcir_ibtracs_fused.csv
+
+This is the main tabular dataset for Steps 9-12. It contains aligned
+TCIR and IBTrACS observations. Steps 9-11 order rows by SID and TIME,
+make lookback windows, and predict the next observation. This dataset
+does not contain image pixels and therefore cannot replace image inputs
+required by Steps 6-8.
+
+2.4 SATELLITE IMAGE CROPS
+Expected folders:
+  data/processed/images/cyclone/
+  data/processed/images/no_cyclone/
+
+Purpose:
+  - Step 6 binary CNN detection;
+  - Step 7 image feature extraction;
+  - Step 8 image-feature category classification.
+
+These image assets are not included. They must be supplied with correct
+labels before image-dependent model training can occur.
+
+3. TRANSFORMATION AND ARTIFACT PIPELINE
+=====================================================================
+RAW TCIR DATA + RAW IBTrACS DATA
+  |
+  v
+Data collection and raw-format preparation
+  |
+  v
+Cleaning, quality checks, missing/duplicate handling
+  |
+  v
+Preprocessing; timestamp, location, and identity alignment
+  |
+  v
+TCIR + IBTrACS fusion
+  |
+  v
+Fused tabular dataset
+  |
+  +------------------------------+------------------------------+
+  |                                                             |
+  v                                                             v
+Satellite image crops                                        Storm-state rows
+  |                                                             |
+  v                                                             v
+Step 6 CNN detector                                       Steps 9-11 LSTMs
+  |
+  v
+Step 7 CNN features
+  |
+  v
+Step 8 MLP category classification
+  |
+  +------------------------------+------------------------------+
+                                |
+                                v
+                        Step 12 evaluation
+                                |
+                                v
+                    Step 13 FastAPI prediction engine
+                                |
+                                v
+                    Step 14 Streamlit dashboard
+
+The image branch creates image-level probability, detection, and
+embedding artifacts. The tabular branch makes ordered per-storm
+sequences for next-state regression. The dashboard reads created CSV and
+JSON artifacts locally and calls the local API when running.
+
+4. DIRECTORY STRUCTURE
+=====================================================================
+D:\SIH
+|
++-- tropical-cyclone-ai\
+|   +-- notebooks\
+|   |   Exploratory notebooks for Steps 1-5.
+|   +-- data\
+|   |   +-- interim\
+|   |   |   +-- cleaned_satellite\tcir_metadata_cleaned.csv
+|   |   |   +-- cleaned_tracks\
+|   |   +-- processed\
+|   |       +-- fused_dataset\tcir_ibtracs_fused.csv
+|   |       +-- images\cyclone\
+|   |       +-- images\no_cyclone\
+|   |       +-- detections\
+|   |       +-- features\
+|   |       +-- classification\
+|   |       +-- evaluation\
+|   +-- models\
+|   |   Generated checkpoints; empty until models are trained.
+|   +-- src\
+|   |   +-- data_cleaning\          Step 3 package.
+|   |   +-- preprocessing\          Step 4 package.
+|   |   +-- data_fusion\            Step 5 package.
+|   |   +-- cyclone_identification\ Step 6 CNN.
+|   |   +-- feature_extraction\     Step 7.
+|   |   +-- cyclone_classification\ Step 8 MLP.
+|   |   +-- cyclone_forecasting\    Shared LSTM/sequence utilities.
+|   |   +-- temporal_model\         Step 9.
+|   |   +-- intensity_prediction\   Step 10.
+|   |   +-- track_prediction\       Step 11.
+|   |   +-- model_evaluation\       Step 12.
+|   |   +-- prediction_engine\      Step 13.
+|   +-- requirements.txt
+|   +-- requirements-step6.txt
+|   +-- requirements-step13.txt
+|
++-- Dashboard\
+|   +-- dashboard\app.py            Streamlit entry point.
+|   +-- dashboard\pages\            Dashboard pages/control center.
+|   +-- dashboard\data\pipeline.py  ML artifact/API connector.
+|
++-- conclusion\
+    This handoff and supporting READMEs.
+
+5. STEPS 1-5: DATA PIPELINE
+=====================================================================
+STEP 1 - DATA COLLECTION
+Objective: obtain TCIR satellite metadata and IBTrACS records.
+Input: source data. Live retrieval configuration is not specified in the
+supplied project information.
+Output: source data used by notebooks and later processing.
+Status: early workflow artifacts are implemented.
+
+STEP 2 - RAW DATA PREPARATION
+Objective: load and inspect source formats for subsequent processing.
+Processing details beyond notebook-level work are not specified in the
+supplied project information. Source format, units, timestamps, and
+identifiers should be preserved for reproducibility.
+
+STEP 3 - DATA CLEANING
+Objective: address missing, invalid, duplicate, and inconsistent records.
+Output: cleaned satellite and track artifacts under data/interim.
+Considerations: invalid timestamps, coordinate range, duplicates, missing
+values, unit consistency, and source field changes require validation.
+
+STEP 4 - PREPROCESSING
+Objective: prepare values for fusion and ML use. Image resize/
+normalization is implemented later in Step 6. Exact complete upstream
+preprocessing rules should be verified from the notebooks before raw
+pipeline reproduction.
+
+STEP 5 - TCIR-IBTRACS FUSION
+Objective: make one aligned tabular storm dataset.
+Input: cleaned TCIR and cleaned IBTrACS records.
+Processing: compatible timestamp, geography, and storm identity are
+aligned into fields from both sources.
+Output: data/processed/fused_dataset/tcir_ibtracs_fused.csv.
+Status: available; 21,076 records.
+Technical considerations: matching tolerance, time zone/format, identity
+association, field alignment, missing values, and duplicate handling
+should be revalidated when source data changes.
+
+6. STEP 6 - CNN CYCLONE IDENTIFICATION
+=====================================================================
+Objective: predict whether an RGB satellite crop contains a tropical
+cyclone.
+
+Input:
+  data/processed/images/cyclone/
+  data/processed/images/no_cyclone/
+
+Manifest creation labels cyclone as 1 and no_cyclone as 0, validates
+paths, and writes image_path,label CSV records. The CNN uses PyTorch
+convolution, batch normalization, ReLU, max-pooling, adaptive average
+pooling, dropout, and a final binary logit. Images are loaded through
+Pillow, converted to RGB, resized to 256x256 by default, and normalized.
+
+Training uses a stratified train/validation split, BCEWithLogitsLoss,
+AdamW, and reports validation accuracy, precision, recall, F1, and
+ROC-AUC when both classes exist. Inference outputs preserved manifest
+metadata plus cyclone_probability and cyclone_detected. Default
+threshold is 0.5.
+
+Commands:
+  python -c "from cyclone_identification.dataset import build_manifest; build_manifest('data/processed/images/cyclone', 'data/processed/images/no_cyclone', 'data/processed/detections/train_manifest.csv')"
+  python -m cyclone_identification.training.train --manifest data/processed/detections/train_manifest.csv
+  python -m cyclone_identification.inference --manifest data/processed/detections/train_manifest.csv --checkpoint models/cyclone_cnn.pt
+
+Important files:
+  src/cyclone_identification/dataset.py
+  src/cyclone_identification/model.py
+  src/cyclone_identification/transforms.py
+  src/cyclone_identification/training/train.py
+  src/cyclone_identification/inference.py
+
+Status: code implemented. Training is blocked until labelled images exist.
+Next step: positive detection records enter Step 7.
+
+7. STEP 7 - CNN FEATURE EXTRACTION
+=====================================================================
+Objective: convert positive detection images into numerical
+representations for classification.
+
+Input: Step 6 detection CSV, a trained CNN checkpoint, and image paths.
+Processing: filter by detection threshold; run CNN feature stack; adaptive
+average pooling produces one 256-dimensional vector per image.
+Output:
+  data/processed/features/image_features.npy
+  data/processed/features/feature_metadata.csv
+
+Metadata is retained so features can be associated with images and any
+upstream fields. Features feed Step 8.
+
+Command:
+  python -m feature_extraction.pipeline --detections data/processed/detections/cyclone_detections.csv --checkpoint models/cyclone_cnn.pt
+
+Status: code implemented; depends on Step 6 images/checkpoint.
+
+8. STEP 8 - CYCLONE CATEGORY CLASSIFICATION
+=====================================================================
+Objective: assign a cyclone category from CNN feature vectors.
+Input: image_features.npy and feature_metadata.csv.
+Technology: scikit-learn MLPClassifier, hidden layers (128,64), early
+stopping, stratified train/test split, predicted probabilities.
+Output: classifier .pkl and CSV with predicted_category and
+category_confidence.
+
+Commands:
+  python -m cyclone_classification.pipeline train --label-column <category_column>
+  python -m cyclone_classification.pipeline predict
+
+A category label column is preferred. The code has a USA_WIND fallback,
+but category definitions must be reviewed against the project's selected
+labelling standard. Do not claim categories or accuracy before labelled
+training/evaluation data exists.
+
+9. STEP 9 - TEMPORAL STORM MODEL
+=====================================================================
+Objective: model next storm state from historical ordered observations.
+Input:
+  data/processed/fused_dataset/tcir_ibtracs_fused.csv
+Default features/targets:
+  LAT_IBTRACS, LON_IBTRACS, USA_WIND, USA_PRES
+Model: PyTorch LSTM followed by dropout and a linear output head.
+Processing: rows sort by SID and TIME; default lookback is four historic
+states; each window predicts the next state. Training-partition mean/std
+are used for feature/target scaling and inverse scaling.
+Validation: implemented split is by SID, so a storm is not split across
+train and test partitions.
+Output:
+  models/temporal_state_lstm.pt
+  models/temporal_state_lstm.predictions.csv
+Command:
+  python -m temporal_model.pipeline --data data/processed/fused_dataset/tcir_ibtracs_fused.csv
+
+10. STEP 10 - INTENSITY FORECASTING
+=====================================================================
+Objective: predict next USA_WIND and USA_PRES.
+Input: sequential lat/lon/wind/pressure history.
+Model: shared PyTorch LSTM multi-output regression.
+Loss concept: mean squared error during training.
+Output:
+  models/intensity_lstm.pt
+  models/intensity_lstm.predictions.csv
+Command:
+  python -m intensity_prediction.pipeline train --data data/processed/fused_dataset/tcir_ibtracs_fused.csv
+
+The inference interface needs exactly the checkpoint-configured lookback
+history rows, with fields ordered LAT_IBTRACS,LON_IBTRACS,USA_WIND,
+USA_PRES. Status: implemented; checkpoint is not yet available.
+
+11. STEP 11 - TRACK FORECASTING
+=====================================================================
+Objective: predict next LAT_IBTRACS and LON_IBTRACS.
+Input: sequential lat/lon/wind/pressure storm history.
+Model: shared PyTorch LSTM multi-output regression.
+Output:
+  models/track_lstm.pt
+  models/track_lstm.predictions.csv
+Command:
+  python -m track_prediction.pipeline train --data data/processed/fused_dataset/tcir_ibtracs_fused.csv
+
+Limitations: simple coordinate regression does not by itself impose
+physical storm-motion constraints, uncertainty cones, land interaction,
+or all longitude-wrap cases. Status: implemented; checkpoint absent.
+
+12. STEP 12 - MODEL EVALUATION
+=====================================================================
+Classification metrics: accuracy, weighted precision, weighted recall,
+and weighted F1.
+Regression metrics: MAE and RMSE.
+Track metrics: mean and median Haversine geographic error in kilometres.
+
+Haversine concept:
+  a = sin^2((lat2-lat1)/2) + cos(lat1)*cos(lat2)*sin^2((lon2-lon1)/2)
+  d = 2 * R * asin(sqrt(a))
+Coordinates are converted to radians and R is Earth radius.
+
+Command:
+  python -m model_evaluation.pipeline --data <predictions.csv> --task track --actual actual_LAT_IBTRACS,actual_LON_IBTRACS --predicted predicted_LAT_IBTRACS,predicted_LON_IBTRACS
+
+Output defaults to data/processed/evaluation/metrics.json. Haversine
+measures point distance, not every quality property of a full trajectory.
+
+13. STEP 13 - FASTAPI PREDICTION ENGINE
+=====================================================================
+Technology: FastAPI and Uvicorn.
+Purpose: serve trained local models through HTTP without deployment.
+Files:
+  src/prediction_engine/app.py
+  src/prediction_engine/service.py
+
+Implemented endpoints:
+  GET /health
+    Returns ready/models_missing status and model-file availability.
+  POST /forecast
+    Accepts cyclone_id, history, optional feature_vector.
+    history order: LAT_IBTRACS,LON_IBTRACS,USA_WIND,USA_PRES.
+    Returns intensity, track, alerts, and optional category result.
+
+Alerts:
+  warning wind >= 64 kt;
+  critical wind >= 96 kt;
+  warning pressure <= 980 hPa.
+
+Missing model/history errors are exposed as HTTP 422. The API is local.
+Startup:
+  cd D:\SIH\tropical-cyclone-ai
+  $env:PYTHONPATH = 'src'
+  uvicorn prediction_engine.app:app --reload
+Address: http://127.0.0.1:8000
+
+14. STEP 14 - STREAMLIT DASHBOARD
+=====================================================================
+Location: D:\SIH\Dashboard
+Entry: dashboard/app.py
+Connector: dashboard/data/pipeline.py
+Connected view: dashboard/pages/6_pipeline_control.py
+
+The connector reads local CSV/JSON artifacts in tropical-cyclone-ai,
+loads the fused data, and calls http://127.0.0.1:8000 by default. It can
+use environment variable PREDICTION_ENGINE_URL for a different local API.
+
+Pipeline Control Center:
+  - shows existence of detections, features, categories, temporal,
+    intensity, track, and metrics artifacts;
+  - allows SID selection from fused data;
+  - displays the latest fused state;
+  - submits the latest four complete rows to the local forecast API;
+  - displays API alerts, metrics, available artifact rows, and an
+    actual-versus-predicted track visualization where outputs exist.
+
+Existing dashboard pages include detection, classification, intensity,
+track, and performance views. Some older views use sample data; Pipeline
+Control Center is the integrated artifact/API view.
+
+Startup:
+  cd D:\SIH\Dashboard
+  streamlit run dashboard/app.py
+Address: http://localhost:8501
+
+15. TECHNOLOGY STACK AND INSTALLATION
+=====================================================================
+Python 3.10+: implementation language.
+pandas, NumPy: tables, CSVs, metadata, arrays.
+SciPy, xarray, h5py, netCDF4: scientific/data-format support.
+PyTorch: Step 6 CNN and Steps 9-11 LSTMs.
+scikit-learn: MLP, splitting, metrics.
+Pillow: RGB image loading/resizing.
+Jupyter: early pipeline exploration.
+matplotlib, seaborn: static plotting support.
+Plotly, Folium, streamlit-folium: dashboard visualization/maps.
+FastAPI, Uvicorn: local API.
+Streamlit: dashboard.
+
+Install:
+  cd D:\SIH\tropical-cyclone-ai
+  python -m pip install -r requirements.txt -r requirements-step6.txt -r requirements-step13.txt
+  $env:PYTHONPATH = 'src'
+
+PYTHONPATH is a PowerShell environment variable for the current terminal
+and enables imports from the src directory.
+
+16. DATA LEAKAGE, VALIDATION, AND RECOMMENDATIONS
+=====================================================================
+IMPLEMENTED:
+  - LSTM sequence splitting is storm-aware: SID partitions storms before
+    train/test sequence use.
+  - Forecast scaling statistics use training sequences.
+  - Step 6 uses a stratified image train/validation split.
+
+WHY:
+  Random row splitting can put records from one storm into both train and
+  test data and inflate apparent performance. Future observations must
+  never be used as history for an earlier forecast.
+
+RECOMMENDED IMPROVEMENTS:
+  - Hold out complete unseen storms for final evaluation.
+  - Persist split identifiers, random seeds, dataset version, parameters,
+    normalization values, and model versions.
+  - Maintain strict temporal ordering.
+  - Ensure no duplicate/near-duplicate image frames cross image splits.
+  - Audit cyclone/non-cyclone/category imbalance.
+  - Audit missing values, duplicates, units, and storm associations.
+  - Perform hyperparameter tuning and uncertainty estimation only with
+    leakage-safe validation.
+
+17. LIMITATIONS AND FUTURE WORK
+=====================================================================
+Limitations:
+  1. No satellite images are included.
+  2. No trained checkpoints are included.
+  3. Dashboard availability depends on artifact creation.
+  4. System is local-only and research-only.
+  5. Forecast quality depends on data, labels, training, and validation.
+  6. Track and intensity predictions contain uncertainty.
+  7. Classification confidence is not guaranteed correctness.
+  8. Haversine error does not capture every track-quality attribute.
+  9. Threshold alerts are software rules, not official warnings.
+
+Future work:
+  - supply high-quality labelled satellite images;
+  - train and validate every model;
+  - define/document category labels;
+  - evaluate unseen storms rigorously;
+  - compare architectures and tune hyperparameters;
+  - improve uncertainty estimation and visualizations;
+  - add experiment tracking, reproducibility metadata, and model versioning;
+  - consider deployment only after rigorous validation.
+
+18. TROUBLESHOOTING
+=====================================================================
+ModuleNotFoundError/PYTHONPATH:
+  Set $env:PYTHONPATH = 'src' from tropical-cyclone-ai.
+  Verify: python -c "import cyclone_identification"
+
+Missing dataset/images:
+  Verify the fused CSV path or add valid labelled image files to the two
+  expected image folders, then rebuild the manifest.
+
+Missing checkpoint/dashboard unavailable:
+  Train the relevant stage and keep its output in models/ or the expected
+  processed folder. Verify /health and Pipeline Control Center status.
+
+CSV column mismatch:
+  Confirm SID, TIME, LAT_IBTRACS, LON_IBTRACS, USA_WIND, and USA_PRES
+  are present for default LSTM commands.
+
+Incorrect category column:
+  Inspect feature_metadata.csv; provide a complete, project-approved
+  label column before training.
+
+Tensor shape error:
+  Provide exactly checkpoint lookback rows with expected feature order.
+
+FastAPI/dashboard fails to start:
+  Install dependencies, set PYTHONPATH for the API, and ensure ports
+  8000 and 8501 are not already used. Verify API /health before testing
+  dashboard API communication.
+
+19. REPRODUCIBILITY AND HANDOFF CHECKLIST
+=====================================================================
+[ ] Record Python and dependency versions.
+[ ] Preserve all three requirements files.
+[ ] Record dataset source/version/path and fused row count.
+[ ] Record image provenance, labels, and manifest version.
+[ ] Record random seeds and storm split identifiers.
+[ ] Record columns, lookback, forecast horizon, normalization values.
+[ ] Save checkpoints and linked evaluation metrics.
+[ ] Preserve prediction CSVs and metrics JSON.
+[ ] Record API/dashboard configuration and PREDICTION_ENGINE_URL.
+[ ] Verify fused data has 21,076 rows.
+[ ] Add images; build manifest; train CNN; generate detections.
+[ ] Extract features; train/predict classifier.
+[ ] Train temporal, intensity, and track models.
+[ ] Evaluate outputs and inspect metrics.
+[ ] Start FastAPI; test GET /health and POST /forecast.
+[ ] Start Streamlit; inspect Pipeline Control Center.
+[ ] Document final model versions and research conclusions.
+
+FINAL SUMMARY
+=====================================================================
+The codebase provides an integrated local research pipeline from
+TCIR/IBTrACS data through fused tabular temporal modeling and from
+satellite images through CNN detection/features/classification. The
+FastAPI engine and Streamlit dashboard connect trained local models and
+artifacts to a usable interface. The fused 21,076-row dataset exists;
+labelled images and trained checkpoints do not. Immediate next work is
+therefore data supply, training, leakage-safe validation, evaluation,
+and documentation of resulting model versions. This prototype must not
+be represented as an official meteorological forecasting or warning
+service.

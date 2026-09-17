@@ -1,0 +1,43 @@
+AI/ML TROPICAL CYCLONE SYSTEM — PROJECT HANDOFF
+===============================================
+
+PURPOSE
+-------
+Local end-to-end research workflow for satellite-image cyclone detection,
+category classification, intensity forecasting, track forecasting, evaluation,
+and dashboard visualization.
+
+COMPLETED IMPLEMENTATION
+------------------------
+Steps 1–5: Data collection through fusion; fused TCIR–IBTrACS CSV is present.
+Step 6: CNN cyclone identification, manifest builder, train/inference scripts.
+Step 7: CNN feature extraction from positive detections.
+Step 8: MLP category classification with confidence scores.
+Step 9: Storm-level split LSTM temporal model.
+Step 10: LSTM wind-speed and pressure prediction.
+Step 11: LSTM latitude/longitude track prediction.
+Step 12: Classification, regression, and Haversine track evaluation.
+Step 13: Local FastAPI prediction engine and threshold alerts.
+Dashboard: Streamlit Pipeline Control Center connected to local artifacts.
+
+MAIN LOCATIONS
+--------------
+ML project: D:\SIH\tropical-cyclone-ai
+Dashboard: D:\SIH\Dashboard
+Documentation: D:\SIH\conclusion\README.md
+
+RUN ORDER
+---------
+1. Install ML dependencies from tropical-cyclone-ai requirements files.
+2. Add labelled cyclone/non-cyclone satellite images.
+3. Run Steps 6, 7, and 8.
+4. Train Steps 9, 10, and 11 using the fused dataset.
+5. Run Step 12 evaluation.
+6. Start Step 13 locally with uvicorn.
+7. Start Dashboard locally with Streamlit.
+
+IMPORTANT LIMITATION
+--------------------
+The repository has fused tabular data but no satellite image dataset and no
+trained checkpoint files. The dashboard marks artifact-driven features as
+unavailable until training is complete. This is not an official warning system.
